@@ -1,0 +1,82 @@
+---
+title: 'Relationship between variables and MPG'
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+  word_document: default
+---
+Author: Armin Najarpour Foroushani
+
+### Overview and Objectives
+We are interested in exploring the relationship between different variables and miles per gallon (MPG) (outcome). Particularly the following two questions:
+1) Which one is better for MPG: automatic or manual?
+2) MPG difference between automatic and manual transmissions
+
+These questions are answered using mtcars dataset in R.
+
+### Analysis
+
+mpg and am columns show miles per gallon and transmission (0 = automatic, 1 = manual).
+
+A linear regression model was fitted with transmission as two level factor predictor and MPG as the outcome. 
+
+ggplot was used to visualize the data and the fitted lines.
+```{r Regression,echo=TRUE}
+fit = lm(mpg ~ factor(am), data = mtcars)
+summary(fit)$coef
+```
+
+```{r Regression_and_Visualization,echo=FALSE}
+library(ggplot2)
+g = ggplot(mtcars, aes(x = factor(am), y = mpg, colour = factor(am)))
+g = g + geom_point(size = 6, colour = "black") + geom_point(size = 4)
+g = g + xlab("Transmission (0 = automatic, 1 = manual)") + ylab("MPG")
+
+fit = lm(mpg ~ factor(am), data = mtcars)
+g1 = g
+g1 = g1 + geom_abline(intercept = coef(fit)[1], slope = 0, size = 2)
+g1 = g1 + geom_abline(intercept = coef(fit)[1] + coef(fit)[2], slope = 0, size = 2)
+g1
+```
+
+We compared mean MPG for manual and automatic transmissions.
+```{r mean,echo=TRUE}
+cat("automatic: ", mean(mtcars$mpg[mtcars$am == 0]))
+cat("manual: ", mean(mtcars$mpg[mtcars$am == 1]))
+```
+
+Intercept for the automatic cars is 17.15 and for the manual is 24.4, and their mean values are 17.15 and 24.4.
+
+t-test was applied to quantify the difference between automatic and manual transmissions:
+
+```{r test,echo=TRUE}
+t.test(mtcars$mpg[mtcars$am==0],mtcars$mpg[mtcars$am==1],paired = FALSE,alternative = "two.sided",var.equal = FALSE)$p.value
+```
+
+Difference between the automatic and manual cars is significant with 95% confidence interval (-11.3,-3.2).
+
+Residual plot:
+```{r diagnostic,echo=TRUE}
+dfbetas(fit)[1:4, 2]
+er <- resid(fit)
+yhat <- predict(fit)
+max(abs(er -(mtcars$mpg - yhat)))
+```
+
+Merc 450SL has very low dfbeta slope while Toyota Corolla, Ford Pantera L, and Maserati Bora have high slope. They can be removed from the analysis.
+
+Predicted values are the mean of each group and the residuals are the difference between each value and its mean.
+
+Dependence of MPG on the other variables:
+```{r Regression_other_var,echo=TRUE}
+summary(lm(mpg ~ ., data = mtcars))$coef[, 1]
+t.test(mtcars$mpg,mtcars$am,paired = FALSE,alternative = "two.sided",var.equal = FALSE)$p.value
+t.test(mtcars$mpg,mtcars$wt,paired = FALSE,alternative = "two.sided",var.equal = FALSE)$p.value
+```
+
+So, transmission and weight are the most important predictors of MPG.
+
+### Conclusion and summary
+
+Overall automatic transmission is better than manual transmission for MPG. However, weight plays an important role too. So, only using transmission biases the model.
